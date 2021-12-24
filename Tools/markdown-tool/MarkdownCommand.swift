@@ -20,13 +20,13 @@ struct MarkdownCommand: ParsableCommand {
         PrintHTML.self,
     ])
 
-    static func parseFile(at path: String, options: ParseOptions) throws -> (source: String, parsed: Document) {
+    static func parseFile(at path: String, options: ConvertOptions) throws -> (source: String, parsed: Document) {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let inputString = String(decoding: data, as: UTF8.self)
-        return (inputString, Document(parsing: inputString, options: options))
+        return (inputString, Document(parsing: inputString, convertOptions: options))
     }
 
-    static func parseStandardInput(options: ParseOptions) throws -> (source: String, parsed: Document) {
+    static func parseStandardInput(options: ConvertOptions) throws -> (source: String, parsed: Document) {
         let stdinData: Data
         if #available(macOS 10.15.4, *) {
             stdinData = try FileHandle.standardInput.readToEnd() ?? Data()
@@ -34,6 +34,6 @@ struct MarkdownCommand: ParsableCommand {
             stdinData = FileHandle.standardInput.readDataToEndOfFile()
         }
         let stdinString = String(decoding: stdinData, as: UTF8.self)
-        return (stdinString, Document(parsing: stdinString, options: options))
+        return (stdinString, Document(parsing: stdinString, convertOptions: options))
     }
 }

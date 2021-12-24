@@ -39,9 +39,9 @@ extension MarkdownCommand {
         func run() throws {
             let document: Document
             if let inputFilePath = inputFile {
-                (_, document) = try MarkdownCommand.parseFile(at: inputFilePath, options: [])
+                (_, document) = try MarkdownCommand.parseFile(at: inputFilePath, options: ConvertOptions())
             } else {
-                (_, document) = try MarkdownCommand.parseStandardInput(options: [])
+                (_, document) = try MarkdownCommand.parseStandardInput(options: ConvertOptions())
             }
 
             var formatterOptions = HTMLFormatterOptions()
