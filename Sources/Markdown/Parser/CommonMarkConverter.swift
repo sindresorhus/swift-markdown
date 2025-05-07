@@ -68,6 +68,9 @@ fileprivate enum CommonMarkNodeType: String {
     case tableCell = "table_cell"
 
     case taskListItem = "tasklist"
+
+    case footnoteReference = "footnote_reference"
+    case footnoteDefinition = "footnote_definition"
 }
 
 fileprivate extension CommonMarkNodeType {
@@ -148,6 +151,16 @@ fileprivate struct MarkupConverterState {
         let typeString = String(cString: cmark_node_get_type_string(node))
         guard let type = CommonMarkNodeType(rawValue: typeString) else {
             fatalError("Unknown cmark node type '\(typeString)' encountered during conversion")
+        }
+        if type == .unknown {
+            // NOTE: cmark does not expose strings for the footnote types, but
+            // does correctly identify their type.
+            switch cmark_node_get_type(node) {
+                case CMARK_NODE_FOOTNOTE_DEFINITION: return .footnoteDefinition
+                case CMARK_NODE_FOOTNOTE_REFERENCE: return .footnoteReference
+                default:
+                    fatalError("Unknown cmark node type '\(typeString)' encountered during conversion")
+            }
         }
         return type
     }
@@ -409,6 +422,12 @@ struct MarkupParser {
         case .inlineAttributes:
             let attributes = String(cString: cmark_node_get_attributes(node))
             return .inlineAttributes(attributes: attributes, parsedRange: parsedRange, children)
+        case .footnoteReference:
+            let footnoteID = String(cString: cmark_node_get_literal(node))
+            return .footnoteReference(footnoteID: footnoteID, parsedRange: parsedRange, children)
+        case .footnoteDefinition:
+            let footnoteID = String(cString: cmark_node_get_literal(node))
+            return .footnoteDefinition(footnoteID: footnoteID, parsedRange: parsedRange, children)
         default:
             fatalError("Unknown container node type '\(frame.nodeType.rawValue)'")
         }
@@ -424,6 +443,7 @@ struct MarkupParser {
         if !options.contains(.disableSourcePosOpts) {
             cmarkOptions |= CMARK_OPT_SOURCEPOS
         }
+        cmarkOptions |= CMARK_OPT_FOOTNOTES
         
         let parser = cmark_parser_new(cmarkOptions)
         
