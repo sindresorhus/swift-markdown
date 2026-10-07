@@ -423,7 +423,8 @@ struct MarkupParser {
             let attributes = String(cString: cmark_node_get_attributes(node))
             return .inlineAttributes(attributes: attributes, parsedRange: parsedRange, children)
         case .footnoteReference:
-            let footnoteID = String(cString: cmark_node_get_literal(node))
+            // cmark replaces the literal of a reference with the number of its footnote, so the label is read from its definition.
+            let footnoteID = String(cString: cmark_node_get_literal(cmark_node_parent_footnote_def(node) ?? node))
             return .footnoteReference(footnoteID: footnoteID, parsedRange: parsedRange, children)
         case .footnoteDefinition:
             let footnoteID = String(cString: cmark_node_get_literal(node))

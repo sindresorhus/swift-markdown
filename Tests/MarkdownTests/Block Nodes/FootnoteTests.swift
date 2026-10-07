@@ -67,4 +67,16 @@ class FootnoteTests: XCTestCase {
 
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
-  }
+  
+
+    /// A reference has the label of its definition, not the number of the footnote, which cmark gives the reference.
+    func testReferencesHaveTheLabelsOfTheirDefinitions() {
+        let document = Document(parsing: "See[^b] and[^a].\n\n[^a]: A\n[^b]: B\n")
+        let paragraph = document.child(at: 0) as! Paragraph
+        let references = paragraph.children.compactMap { $0 as? FootnoteReference }
+        let definitions = document.children.compactMap { $0 as? FootnoteDefinition }
+
+        XCTAssertEqual(["b", "a"], references.map(\.footnoteID))
+        XCTAssertEqual(Set(["a", "b"]), Set(definitions.map(\.footnoteID)))
+    }
+}
