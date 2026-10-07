@@ -348,12 +348,13 @@ struct MarkupParser {
             for child in children {
                 guard case .listItem = child.data else { fatalError("Converted cmark list had a non-listItem node") }
             }
+            let isTight = cmark_node_get_list_tight(node) != 0
             switch cmark_node_get_list_type(node) {
             case CMARK_BULLET_LIST:
-                return .unorderedList(parsedRange: parsedRange, children)
+                return .unorderedList(parsedRange: parsedRange, children, isTight: isTight)
             case CMARK_ORDERED_LIST:
                 let cmarkStart = UInt(cmark_node_get_list_start(node))
-                return .orderedList(parsedRange: parsedRange, children, startIndex: cmarkStart)
+                return .orderedList(parsedRange: parsedRange, children, startIndex: cmarkStart, isTight: isTight)
             default:
                 fatalError("cmark reported a list node but said its list type is CMARK_NO_LIST?")
             }

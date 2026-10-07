@@ -17,6 +17,18 @@ public protocol ListItemContainer: BlockMarkup {
 // MARK: - Public API
 
 public extension ListItemContainer {
+    /// Whether the list is tight, as CommonMark defines it: no blank line separates its items, or the blocks inside an item.
+    ///
+    /// The items of a tight list have no paragraph around their text when rendered as HTML. A list made in code is tight.
+    var isTight: Bool {
+        switch raw.markup.data {
+        case let .orderedList(_, isTight), let .unorderedList(isTight):
+            return isTight
+        default:
+            fatalError("\(self) markup wrapped unexpected \(raw)")
+        }
+    }
+
     /// Create a list with one item.
     init(_ item: ListItem) {
         self.init(CollectionOfOne(item))

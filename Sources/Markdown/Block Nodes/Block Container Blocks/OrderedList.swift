@@ -39,7 +39,7 @@ public extension OrderedList {
     /// HTML, clients may omit the `start` attribute of the rendered list when this returns 1.
     var startIndex: UInt {
         get {
-            guard case let .orderedList(start) = _data.raw.markup.data else {
+            guard case let .orderedList(start, _) = _data.raw.markup.data else {
                 fatalError("\(self) markup wrapped unexpected \(_data.raw)")
             }
             return start
@@ -48,7 +48,7 @@ public extension OrderedList {
             guard startIndex != newValue else {
                 return
             }
-            _data = _data.replacingSelf(.orderedList(parsedRange: nil, _data.raw.markup.copyChildren(), startIndex: newValue))
+            _data = _data.replacingSelf(.orderedList(parsedRange: nil, _data.raw.markup.copyChildren(), startIndex: newValue, isTight: isTight))
         }
     }
 
