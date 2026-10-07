@@ -79,4 +79,21 @@ class FootnoteTests: XCTestCase {
         XCTAssertEqual(["b", "a"], references.map(\.footnoteID))
         XCTAssertEqual(Set(["a", "b"]), Set(definitions.map(\.footnoteID)))
     }
+
+    func testFormatFootnotes() {
+        let source = """
+        Text with a footnote[^note] and another[^2].
+
+        [^note]: A footnote.
+
+        [^2]: A footnote with two paragraphs.
+
+            The second paragraph.
+        """
+
+        // The formatted footnotes parse to the same tree.
+        let formatted = Document(parsing: source).format()
+        XCTAssertEqual(Document(parsing: source).debugDescription(), Document(parsing: formatted).debugDescription())
+        XCTAssertTrue(formatted.hasPrefix("Text with a footnote[^note] and another[^2].\n\n[^note]: A footnote.\n\n[^2]: A footnote with two paragraphs.\n"))
+    }
 }

@@ -493,7 +493,7 @@ public struct MarkupFormatter: MarkupWalker {
                     prefix += String(repeating: " ", count: numeralPrefix.count)
                 }
             }
-            if element.parent is BlockDirective {
+            if element.parent is BlockDirective || element.parent is FootnoteDefinition {
                 prefix += "    "
             }
         }
@@ -903,6 +903,20 @@ public struct MarkupFormatter: MarkupWalker {
         // We can do this because the model differentiates between real Text
         // content and string-like data, such as URLs.
         softWrapPrint(text.string, for: text)
+    }
+
+    public mutating func visitFootnoteReference(_ footnoteReference: FootnoteReference) {
+        print("[^\(footnoteReference.footnoteID)]", for: footnoteReference)
+    }
+
+    public mutating func visitFootnoteDefinition(_ footnoteDefinition: FootnoteDefinition) {
+        if footnoteDefinition.indexInParent > 0 {
+            ensurePrecedingNewlineCount(atLeast: 2)
+        }
+
+        // The first block follows the label, and the lines after it are indented, like the content of a block directive.
+        print("[^\(footnoteDefinition.footnoteID)]: ", for: footnoteDefinition)
+        descendInto(footnoteDefinition)
     }
 
     public mutating func visitStrikethrough(_ strikethrough: Strikethrough) {
