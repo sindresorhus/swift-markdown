@@ -94,6 +94,9 @@ public struct Aside {
         
         /// A "seeAlso" aside.
         public static let seeAlso = Kind(rawValue: "SeeAlso")!
+
+        /// A "caution" aside, like a GitHub `[!CAUTION]` alert.
+        public static let caution = Kind(rawValue: "Caution")!
         
         /// A collection of preconfigured aside kinds.
         public static var allCases: [Aside.Kind] {
@@ -122,6 +125,7 @@ public struct Aside {
                 version,
                 `throws`,
                 seeAlso,
+                caution,
             ]
         }
         
@@ -205,9 +209,74 @@ public struct Aside {
         self.kind = Kind(rawValue: kindTag.tag)!
         self.content = Array(kindTag.newBlockQuote.blockChildren)
     }
+
+    /// Create an aside from a block quote that is a GitHub alert, or `nil` if it is not one.
+    ///
+    /// A GitHub alert starts with a marker alone on its first line, in any case: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]`. These are the kinds ``Kind/note``, ``Kind/tip``, ``Kind/important``, ``Kind/warning``, and ``Kind/caution``. Like on GitHub, the alert needs content after the marker.
+    ///
+    /// ```markdown
+    /// > [!NOTE]
+    /// > Useful information that users should know.
+    /// ```
+    ///
+    /// The ``content`` is the block quote without the marker.
+    ///
+    /// - Note: GitHub does not render alerts that are nested in other elements, like a list. Check the parent of the block quote to do the same.
+    public init?(gitHubAlert blockQuote: BlockQuote) {
+        guard let alert = blockQuote.parseGitHubAlertMarker() else {
+            return nil
+        }
+
+        self.kind = alert.kind
+        self.content = alert.content
+    }
 }
 
 extension BlockQuote {
+    func parseGitHubAlertMarker() -> (kind: Aside.Kind, content: [BlockMarkup])? {
+        let kinds: [String: Aside.Kind] = [
+            "NOTE": .note,
+            "TIP": .tip,
+            "IMPORTANT": .important,
+            "WARNING": .warning,
+            "CAUTION": .caution,
+        ]
+
+        guard
+            let paragraph = child(at: 0) as? Paragraph,
+            let marker = paragraph.child(at: 0) as? Text,
+            marker.string.hasPrefix("[!"),
+            marker.string.hasSuffix("]"),
+            let kind = kinds[marker.string.dropFirst(2).dropLast().uppercased()]
+        else {
+            return nil
+        }
+
+        // The marker is alone on its line: a line break follows it, or it is the whole paragraph and other blocks follow.
+        let next = paragraph.child(at: 1)
+
+        guard next is SoftBreak || next is LineBreak || (paragraph.childCount == 1 && childCount > 1) else {
+            return nil
+        }
+
+        // The rest of the first paragraph, after the marker and its line break.
+        let rest = (0..<paragraph.childCount).dropFirst(2).map { paragraph.raw.markup.child(at: $0) }
+
+        guard !rest.isEmpty else {
+            return (kind, Array(blockChildren.dropFirst()))
+        }
+
+        let restRange: SourceRange? = rest.first?.parsedRange.flatMap { first in
+            paragraph.range.map { first.lowerBound..<$0.upperBound }
+        }
+
+        guard let newBlockQuote = _data.substitutingChild(.paragraph(parsedRange: restRange, rest), at: 0, preserveRange: true) as? BlockQuote else {
+            return nil
+        }
+
+        return (kind, Array(newBlockQuote.blockChildren))
+    }
+
     func parseAsideTag(tagRequirement: Aside.TagRequirement) -> (tag: String, newBlockQuote: BlockQuote)? {
         guard let initialText = self.child(through: [
             (0, Paragraph.self),

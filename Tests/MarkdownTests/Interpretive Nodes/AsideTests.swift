@@ -269,4 +269,55 @@ class AsideTests: XCTestCase {
             file: file, line: line
         )
     }
+
+    func testGitHubAlerts() {
+        let kinds: [(marker: String, kind: Aside.Kind)] = [
+            ("NOTE", .note),
+            ("TIP", .tip),
+            ("IMPORTANT", .important),
+            ("WARNING", .warning),
+            ("CAUTION", .caution),
+        ]
+
+        for (marker, kind) in kinds {
+            let document = Document(parsing: "> [!\(marker)]\n> This is a `\(marker)` alert.")
+            let aside = Aside(gitHubAlert: document.child(at: 0) as! BlockQuote)
+            XCTAssertEqual(kind, aside?.kind)
+            XCTAssertEqual(1, aside?.content.count)
+            XCTAssertEqual("This is a `\(marker)` alert.", (aside?.content.first as? Paragraph)?.plainText)
+            XCTAssertEqual(2, aside?.content.first?.range?.lowerBound.line)
+        }
+    }
+
+    func testGitHubAlertMarkerInAnyCase() {
+        let document = Document(parsing: "> [!Tip]\n> Text.")
+        XCTAssertEqual(.tip, Aside(gitHubAlert: document.child(at: 0) as! BlockQuote)?.kind)
+    }
+
+    func testGitHubAlertWithBlankLineAfterMarker() {
+        let document = Document(parsing: "> [!NOTE]\n>\n> First.\n>\n> Second.")
+        let aside = Aside(gitHubAlert: document.child(at: 0) as! BlockQuote)
+        XCTAssertEqual(.note, aside?.kind)
+        XCTAssertEqual(["First.", "Second."], aside?.content.map { ($0 as? Paragraph)?.plainText })
+    }
+
+    func testNotGitHubAlerts() {
+        let sources = [
+            // The marker is not alone on its line.
+            "> [!NOTE] Text.",
+            // There is nothing after the marker.
+            "> [!NOTE]",
+            // Not a known kind.
+            "> [!HMM]\n> Text.",
+            // A regular block quote.
+            "> Text.",
+            // A DocC aside tag.
+            "> Note: Text.",
+        ]
+
+        for source in sources {
+            let document = Document(parsing: source)
+            XCTAssertNil(Aside(gitHubAlert: document.child(at: 0) as! BlockQuote), source)
+        }
+    }
 }
