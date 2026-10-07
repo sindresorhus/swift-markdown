@@ -440,7 +440,12 @@ struct MarkupParser {
         let parser = cmark_parser_new(options.commonmarkOptions.rawValue)
 
         for ext in options.commonmarkExtensions {
-            cmark_parser_attach_syntax_extension(parser, cmark_find_syntax_extension(ext))
+            // An unknown name has no extension to attach.
+            guard let syntaxExtension = cmark_find_syntax_extension(ext) else {
+                continue
+            }
+
+            cmark_parser_attach_syntax_extension(parser, syntaxExtension)
         }
 
         cmark_parser_feed(parser, string, string.utf8.count)

@@ -139,4 +139,18 @@ class CommonMarkConverterTests: XCTestCase {
         )
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
+
+    /// An unknown extension is skipped, as cmark has no extension to attach for it.
+    func testUnknownExtensionIsSkipped() {
+        let document = Document(
+            parsing: "| a |\n| --- |\n| b |",
+            source: nil,
+            convertOptions: .init(
+                parseOptions: ConvertOptions.defaultParseOptions,
+                commonmarkOptions: ConvertOptions.defaultCommonmarkOptions,
+                extensions: ["unknown", "table"]
+            )
+        )
+        XCTAssertTrue(document.child(at: 0) is Table)
+    }
 }
